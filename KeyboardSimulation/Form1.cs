@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Speech.Recognition;
 
 namespace KeyboardSimulation
 {
@@ -68,6 +69,14 @@ namespace KeyboardSimulation
             comboBox1.Refresh();
         }
 
+        static void sre_SpeechRecognized(object sender, SpeechRecognizedEventArgs e)
+        {
+            if (e.Result.Confidence > (float)0.7)
+            {
+                SendKeys.SendWait(e.Result.Text);
+            }
+        }
+
         private void button1_Click(object sender, EventArgs e)
         {
             // Get a handle to the Calculator application. The window class
@@ -76,19 +85,42 @@ namespace KeyboardSimulation
 
             if (calculatorHandle == IntPtr.Zero)
             {
-                MessageBox.Show("Calculator is not running.");
+                MessageBox.Show("Process is not running.");
                 return;
             }
+
+
+            System.Globalization.CultureInfo ci = new System.Globalization.CultureInfo("ru-ru");
+            SpeechRecognitionEngine sre = new SpeechRecognitionEngine(ci);
+            sre.SetInputToDefaultAudioDevice();
+
+            sre.SpeechRecognized += new EventHandler<SpeechRecognizedEventArgs>(sre_SpeechRecognized);
+
+
+            Choices dictionary = new Choices();
+            dictionary.Add(new string[] { "нажать" });
+
+
+            GrammarBuilder gb = new GrammarBuilder();
+            gb.Culture = ci;
+            gb.Append(dictionary);
+
+
+            Grammar g = new Grammar(gb);
+            sre.LoadGrammar(g);
+
+            sre.RecognizeAsync(RecognizeMode.Multiple);
+
 
             //выводим на передний фон окно именно того калькулятора, 
             //дескриптор которого выбрали в listBox1, что и требовалось
             SetForegroundWindow(calculatorHandle);
 
             //Делаем с нужным окном что хотим
-            SendKeys.SendWait("111");
-            SendKeys.SendWait("*");
-            SendKeys.SendWait("11");
-            SendKeys.SendWait("=");
+            //SendKeys.SendWait("111");
+            //SendKeys.SendWait("*");
+            //SendKeys.SendWait("11");
+            //SendKeys.SendWait("=");
         }
     }
 }
